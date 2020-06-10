@@ -28,6 +28,8 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
+ * 双权重轮询平衡算法：主机权重 + 轮询权重，主机权重大的，调用频率大
+ *
  * Round robin load balance.
  */
 public class RoundRobinLoadBalance extends AbstractLoadBalance {
@@ -35,6 +37,9 @@ public class RoundRobinLoadBalance extends AbstractLoadBalance {
 
     private static final int RECYCLE_PERIOD = 60000;
 
+    /**
+     * 轮询权重实例
+     */
     protected static class WeightedRoundRobin {
         private int weight;
         private AtomicLong current = new AtomicLong(0);
@@ -66,6 +71,12 @@ public class RoundRobinLoadBalance extends AbstractLoadBalance {
         }
     }
 
+    /**
+     * 双层Map：一个方法由多个不同权重的主机（提供者/调用者invoker是相等的，功能相同）提供服务
+     *
+     * 外层key是全限定方法名，value为内层map实例（invoker主机）
+     * 内层key是invoker的url，value为轮询权重WeightedRoundRobin实例
+     */
     private ConcurrentMap<String, ConcurrentMap<String, WeightedRoundRobin>> methodWeightMap = new ConcurrentHashMap<String, ConcurrentMap<String, WeightedRoundRobin>>();
 
     /**

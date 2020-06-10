@@ -38,6 +38,7 @@ import static org.apache.dubbo.common.constants.CommonConstants.DEFAULT_RETRIES;
 import static org.apache.dubbo.common.constants.CommonConstants.RETRIES_KEY;
 
 /**
+ * 当调用失败，记录初始错误，然后重试其它的调用者，将重试n次，这意味着最多n个不同的调用者将被调用。注意，重试将会导致延迟。
  * When invoke fails, log the initial error and retry other invokers (retry n times, which means at most n different invokers will be invoked)
  * Note that retry causes latency.
  * <p>

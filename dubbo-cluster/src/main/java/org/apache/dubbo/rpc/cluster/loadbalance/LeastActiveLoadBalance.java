@@ -91,11 +91,15 @@ public class LeastActiveLoadBalance extends AbstractLoadBalance {
                 }
             }
         }
+
+        // 只有1个最小活跃度的调用者
         // Choose an invoker from all the least active invokers
         if (leastCount == 1) {
             // If we got exactly one invoker having the least active value, return this invoker directly.
             return invokers.get(leastIndexes[0]);
         }
+
+        // 有多个最小活跃度的调用者，且有加权（权重不一样），则使用加权随机算法获取其中1个：加权（随机）最小活跃度算法
         if (!sameWeight && totalWeight > 0) {
             // If (not every invoker has the same weight & at least one invoker's weight>0), select randomly based on 
             // totalWeight.
@@ -109,6 +113,8 @@ public class LeastActiveLoadBalance extends AbstractLoadBalance {
                 }
             }
         }
+
+        // 普通随机算法获取其中1个最小活跃度调用者
         // If all invokers have the same weight value or totalWeight=0, return evenly.
         return invokers.get(leastIndexes[ThreadLocalRandom.current().nextInt(leastCount)]);
     }
