@@ -33,19 +33,27 @@ import java.util.concurrent.ConcurrentMap;
 import static org.apache.dubbo.common.BaseServiceMetadata.interfaceFromServiceKey;
 import static org.apache.dubbo.common.BaseServiceMetadata.versionFromServiceKey;
 
+/**
+ * 服务仓库：当前应用下的所有服务
+ */
 public class ServiceRepository extends LifecycleAdapter implements FrameworkExt {
 
     public static final String NAME = "repository";
 
     // services
+    // 服务映射（描述符映射）
+    // key为服务接口名称
     private ConcurrentMap<String, ServiceDescriptor> services = new ConcurrentHashMap<>();
 
     // consumers
+    // 消费者映射
     private ConcurrentMap<String, ConsumerModel> consumers = new ConcurrentHashMap<>();
 
     // providers
+    // 提供者映射
     private ConcurrentMap<String, ProviderModel> providers = new ConcurrentHashMap<>();
 
+    // 没有分组的提供者映射
     // useful to find a provider model quickly with serviceInterfaceName:version
     private ConcurrentMap<String, ProviderModel> providersWithoutGroup = new ConcurrentHashMap<>();
 

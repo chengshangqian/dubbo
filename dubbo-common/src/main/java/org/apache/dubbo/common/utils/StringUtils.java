@@ -847,28 +847,49 @@ public final class StringUtils {
         return buf.toString();
     }
 
+    /**
+     * 使用指定的分割符号分割骆驼式命名
+     * 例如，myName 将被解析为 my-name，其中-是分隔符
+     *
+     * @param camelName 骆驼式名称
+     * @param split 分割符
+     * @return
+     */
     public static String camelToSplitName(String camelName, String split) {
         if (isEmpty(camelName)) {
             return camelName;
         }
         StringBuilder buf = null;
+        // 逐个遍历骆驼式名称，
         for (int i = 0; i < camelName.length(); i++) {
             char ch = camelName.charAt(i);
+
+            // 如果是大写字母
             if (ch >= 'A' && ch <= 'Z') {
+                // 如果是首个大写字母
                 if (buf == null) {
                     buf = new StringBuilder();
+                    // 先将首个大写字母之前的小写字母或非字母部分添加到buf中，如果解析到的大写字母不是名称中的第1个字母的话
                     if (i > 0) {
                         buf.append(camelName, 0, i);
                     }
                 }
+
+                // 拼接分割符,如果解析到的大写字母不是名称中的第1个字母的话
                 if (i > 0) {
                     buf.append(split);
                 }
+
+                // 拼接解析到的字母(先转为小写)
                 buf.append(Character.toLowerCase(ch));
-            } else if (buf != null) {
+            }
+            // 如果不是大写字母，原样拼接
+            else if (buf != null) {
                 buf.append(ch);
             }
         }
+
+        // 返回转换后的结果
         return buf == null ? camelName : buf.toString();
     }
 

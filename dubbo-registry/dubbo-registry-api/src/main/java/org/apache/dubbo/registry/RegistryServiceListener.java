@@ -20,6 +20,9 @@ package org.apache.dubbo.registry;
 import org.apache.dubbo.common.URL;
 import org.apache.dubbo.common.extension.SPI;
 
+/**
+ * 注册服务监听器：监听注册/取消注册/订阅/取消订阅事件
+ */
 @SPI
 public interface RegistryServiceListener {
     default void onRegister(URL url) {

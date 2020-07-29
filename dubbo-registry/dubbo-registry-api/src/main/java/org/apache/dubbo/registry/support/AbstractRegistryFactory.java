@@ -39,6 +39,8 @@ import static org.apache.dubbo.rpc.cluster.Constants.EXPORT_KEY;
 import static org.apache.dubbo.rpc.cluster.Constants.REFER_KEY;
 
 /**
+ * 抽象注册中心工厂
+ *
  * AbstractRegistryFactory. (SPI, Singleton, ThreadSafe)
  *
  * @see org.apache.dubbo.registry.RegistryFactory

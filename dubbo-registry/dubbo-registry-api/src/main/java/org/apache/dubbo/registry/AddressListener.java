@@ -22,6 +22,9 @@ import org.apache.dubbo.rpc.cluster.Directory;
 
 import java.util.List;
 
+/**
+ * 地址监听器
+ */
 @SPI
 public interface AddressListener {
 

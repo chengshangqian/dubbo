@@ -1,0 +1,3 @@
+simple=com.fandou.learning.dubbo.action.chapter4.spi.service.SimplePrintService
+fixed=com.fandou.learning.dubbo.action.chapter4.spi.service.FixedLengthPrintService
+mutil,double=com.fandou.learning.dubbo.action.chapter4.spi.service.DoublePrintService

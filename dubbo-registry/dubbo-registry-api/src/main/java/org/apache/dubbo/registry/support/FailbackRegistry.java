@@ -43,6 +43,8 @@ import static org.apache.dubbo.registry.Constants.DEFAULT_REGISTRY_RETRY_PERIOD;
 import static org.apache.dubbo.registry.Constants.REGISTRY_RETRY_PERIOD_KEY;
 
 /**
+ * 失败重试注册中心
+ *
  * FailbackRegistry. (SPI, Prototype, ThreadSafe)
  */
 public abstract class FailbackRegistry extends AbstractRegistry {

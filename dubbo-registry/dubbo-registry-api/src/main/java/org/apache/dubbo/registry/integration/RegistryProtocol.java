@@ -177,6 +177,12 @@ public class RegistryProtocol implements Protocol {
         return overrideListeners;
     }
 
+    /**
+     * 注册服务
+     *
+     * @param registryUrl
+     * @param registeredProviderUrl
+     */
     private void register(URL registryUrl, URL registeredProviderUrl) {
         Registry registry = registryFactory.getRegistry(registryUrl);
         registry.register(registeredProviderUrl);
@@ -190,6 +196,14 @@ public class RegistryProtocol implements Protocol {
                 registered));
     }
 
+    /**
+     * 发布服务
+     *
+     * @param originInvoker
+     * @param <T>
+     * @return
+     * @throws RpcException
+     */
     @Override
     public <T> Exporter<T> export(final Invoker<T> originInvoker) throws RpcException {
         URL registryUrl = getRegistryUrl(originInvoker);
@@ -215,6 +229,7 @@ public class RegistryProtocol implements Protocol {
         // decide if we need to delay publish
         boolean register = providerUrl.getParameter(REGISTER_KEY, true);
         if (register) {
+            // 注册即发布到注册中心
             register(registryUrl, registeredProviderUrl);
         }
 

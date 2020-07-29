@@ -35,15 +35,28 @@ public class AdaptiveExtensionFactory implements ExtensionFactory {
     public AdaptiveExtensionFactory() {
         ExtensionLoader<ExtensionFactory> loader = ExtensionLoader.getExtensionLoader(ExtensionFactory.class);
         List<ExtensionFactory> list = new ArrayList<ExtensionFactory>();
+
+        // factories中保存的是SpiExtensionFactory和SpringExtensionFactory实例
         for (String name : loader.getSupportedExtensions()) {
             list.add(loader.getExtension(name));
         }
+
+        // 不可修改，spi在前，将优先被遍历
         factories = Collections.unmodifiableList(list);
     }
 
+    /**
+     * 最终还是调用SpiExtensionFactory和SpringExtensionFactory实例查找T类型实例
+     *
+     * @param type object type.
+     * @param name object name.
+     * @param <T>
+     * @return
+     */
     @Override
     public <T> T getExtension(Class<T> type, String name) {
         for (ExtensionFactory factory : factories) {
+            // 通过扩展类型和bean的名称获取扩展实例
             T extension = factory.getExtension(type, name);
             if (extension != null) {
                 return extension;

@@ -21,6 +21,8 @@ import org.apache.dubbo.config.support.Parameter;
 import java.util.Map;
 
 /**
+ * 抽象方法配置类，定义了各种属性及其getter/setter方法
+ *
  * AbstractMethodConfig
  *
  * @export
@@ -31,57 +33,85 @@ public abstract class AbstractMethodConfig extends AbstractConfig {
 
     /**
      * The timeout for remote invocation in milliseconds
+     *
+     * 远程调用超时（单位毫秒）
      */
     protected Integer timeout;
 
     /**
      * The retry times
+     *
+     * 重试次数
      */
     protected Integer retries;
 
     /**
      * max concurrent invocations
+     *
+     * concurrent 并存的，同时发生的
+     *
+     * 最大并发调用数
+     *
      */
     protected Integer actives;
 
     /**
      * The load balance
+     *
+     * 负载均衡（名称）
      */
     protected String loadbalance;
 
     /**
      * Whether to async
      * note that: it is an unreliable asynchronism that ignores return values and does not block threads.
+     *
+     * 是否异步
+     * 注意：这是一种不可靠的异步，它忽略返回值并且不阻塞线程。
      */
     protected Boolean async;
 
     /**
      * Whether to ack async-sent
+     *
+     * 是否确认异步发送
      */
     protected Boolean sent;
 
     /**
      * The name of mock class which gets called when a service fails to execute
+     *
+     * mock类的名称，当一个服务执行失败是将会调用这个名称对应的mock类
+     *
      * <p>
      * note that: the mock doesn't support on the provider side，and the mock is executed when a non-business exception
      * occurs after a remote service call
+     *
+     * 注意：当一个远程服务调用出现一个业务无关的异常（非业务异常）时，这个mock类将被执行。这个mock类不支持在服务提供者端使用。
      */
     protected String mock;
 
     /**
      * Merger
+     *
+     * 合并器（名称）
      */
     protected String merger;
 
     /**
      * Cache the return result with the call parameter as key, the following options are available: lru, threadlocal,
      * jcache, etc.
+     *
+     * （缓存策略）
+     * 缓存使用调用参数作为键的结果，以下选项可用： lru, threadlocal,jcache等
      */
     protected String cache;
 
     /**
      * Whether JSR303 standard annotation validation is enabled or not, if enabled, annotations on method parameters will
      * be validated
+     *
+     * 是否启用JSR303标准注解验证，如果启用，将验证方法参数上的注解
      */
     protected String validation;
 

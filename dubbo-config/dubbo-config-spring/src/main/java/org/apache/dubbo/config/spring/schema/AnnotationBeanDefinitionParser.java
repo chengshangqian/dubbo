@@ -30,6 +30,8 @@ import static org.springframework.util.StringUtils.commaDelimitedListToStringArr
 import static org.springframework.util.StringUtils.trimArrayElements;
 
 /**
+ * 注解bean定义解析器
+ *
  * @link BeanDefinitionParser}
  * @see ServiceAnnotationBeanPostProcessor
  * @see ReferenceAnnotationBeanPostProcessor

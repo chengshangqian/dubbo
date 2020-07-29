@@ -126,24 +126,38 @@ public class DubboBootstrap extends GenericEventListener {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
+    // DubboBootstrap单例对象
     private static DubboBootstrap instance;
 
+    // 是否等待
     private final AtomicBoolean awaited = new AtomicBoolean(false);
 
+    // 锁
     private final Lock lock = new ReentrantLock();
 
+    // 锁条件
     private final Condition condition = lock.newCondition();
 
+    // 销毁锁
     private final Lock destroyLock = new ReentrantLock();
 
+    // 执行器服务（线程池）
     private final ExecutorService executorService = newSingleThreadExecutor();
 
+    // 事件分发器
     private final EventDispatcher eventDispatcher = EventDispatcher.getDefaultExtension();
 
+    // 执行器仓库（线程仓库?）
     private final ExecutorRepository executorRepository = ExtensionLoader.getExtensionLoader(ExecutorRepository.class).getDefaultExtension();
 
+    /**
+     * 当前应用的配置管理者
+     */
     private final ConfigManager configManager;
 
+    /**
+     * 当前应用的环境
+     */
     private final Environment environment;
 
     private ReferenceConfigCache cache;
@@ -152,12 +166,16 @@ public class DubboBootstrap extends GenericEventListener {
 
     private volatile boolean referAsync;
 
+    // 是否已初始化
     private AtomicBoolean initialized = new AtomicBoolean(false);
 
+    // 引导是否已开始启动
     private AtomicBoolean started = new AtomicBoolean(false);
 
+    // 服务器是否已就绪
     private AtomicBoolean ready = new AtomicBoolean(true);
 
+    // 是否已销毁
     private AtomicBoolean destroyed = new AtomicBoolean(false);
 
     private volatile ServiceInstance serviceInstance;
@@ -173,6 +191,8 @@ public class DubboBootstrap extends GenericEventListener {
     private List<CompletableFuture<Object>> asyncReferringFutures = new ArrayList<>();
 
     /**
+     * 获取DubboBootstrap的单例对象
+     *
      * See {@link ApplicationModel} and {@link ExtensionLoader} for why DubboBootstrap is designed to be singleton.
      */
     public static synchronized DubboBootstrap getInstance() {
@@ -500,22 +520,31 @@ public class DubboBootstrap extends GenericEventListener {
      * Initialize
      */
     private void initialize() {
+        // 如果已经初始化，则返回
         if (!initialized.compareAndSet(false, true)) {
             return;
         }
 
+        /*下面开始初始化*/
+        // 初始化框架的SPI扩展
         ApplicationModel.initFrameworkExts();
 
+        // 启动配置中心
         startConfigCenter();
 
+        // 使用注册中心作为配置中心，如果有必要的话
         useRegistryAsConfigCenterIfNecessary();
 
+        // 加载远程配置
         loadRemoteConfigs();
 
+        // 检查全局配置
         checkGlobalConfigs();
 
+        // 初始化元数据服务
         initMetadataService();
 
+        // 初始化事件监听器
         initEventListener();
 
         if (logger.isInfoEnabled()) {
@@ -736,40 +765,61 @@ public class DubboBootstrap extends GenericEventListener {
     }
 
     /**
+     * 启动引导对象|提供者服务器
+     *
      * Start the bootstrap
      */
     public DubboBootstrap start() {
+        // 开始启动并更新启动状态，如果还未启动的话
         if (started.compareAndSet(false, true)) {
+            // 设置当前就绪状态
             ready.set(false);
+
+            // 初始化
             initialize();
+
             if (logger.isInfoEnabled()) {
                 logger.info(NAME + " is starting...");
             }
+
             // 1. export Dubbo Services
+            // 1. 发布Dubbo服务
             exportServices();
 
             // Not only provider register
             if (!isOnlyRegisterProvider() || hasExportedServices()) {
                 // 2. export MetadataService
+                // 发布元数据服务
                 exportMetadataService();
+
                 //3. Register the local ServiceInstance if required
+                // 注册本地服务实例
                 registerServiceInstance();
             }
 
+            // 提供服务
             referServices();
+
+            // 更新dubbo服务提供者的就绪状态ready
+            // 如果有异步发布
             if (asyncExportingFutures.size() > 0) {
+                // 开启一个新线程等待完成，发布完成后，更新就绪状态
                 new Thread(() -> {
                     try {
                         this.awaitFinish();
                     } catch (Exception e) {
                         logger.warn(NAME + " exportAsync occurred an exception.");
                     }
+
+                    // 就绪
                     ready.set(true);
                     if (logger.isInfoEnabled()) {
                         logger.info(NAME + " is ready.");
                     }
                 }).start();
-            } else {
+            }
+            else {
+                // 就绪
                 ready.set(true);
                 if (logger.isInfoEnabled()) {
                     logger.info(NAME + " is ready.");
@@ -787,13 +837,17 @@ public class DubboBootstrap extends GenericEventListener {
     }
 
     /**
+     * 阻塞当前线程（等待请求的到来？）
      * Block current thread to be await.
      *
      * @return {@link DubboBootstrap}
      */
     public DubboBootstrap await() {
         // if has been waited, no need to wait again, return immediately
+        // 等到之后，无需再次等待，立即返回
+        // 一开始awaited=false
         if (!awaited.get()) {
+            // 只要线程池没有关闭，执行任务
             if (!executorService.isShutdown()) {
                 executeMutually(() -> {
                     while (!awaited.get()) {
@@ -926,10 +980,15 @@ public class DubboBootstrap extends GenericEventListener {
         }
     }
 
+    /**
+     * 发布服务
+     */
     private void exportServices() {
         configManager.getServices().forEach(sc -> {
             // TODO, compatible with ServiceConfig.export()
             ServiceConfig serviceConfig = (ServiceConfig) sc;
+
+            // 设置引导，避免接下来执行export()方法发布服务时重复初始化
             serviceConfig.setBootstrap(this);
 
             if (exportAsync) {
@@ -999,13 +1058,18 @@ public class DubboBootstrap extends GenericEventListener {
         cache.destroyAll();
     }
 
+    /**
+     *  注册服务实例（本地服务实例？）
+     */
     private void registerServiceInstance() {
         if (CollectionUtils.isEmpty(getServiceDiscoveries())) {
             return;
         }
 
+        // 获取应用信息
         ApplicationConfig application = getApplication();
 
+        // 服务提供者应用名称：dubbo-demo-api-provider
         String serviceName = application.getName();
 
         URL exportedURL = selectMetadataServiceExportedURL();

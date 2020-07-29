@@ -25,12 +25,19 @@ import org.apache.dubbo.registry.support.AbstractRegistryFactory;
 import java.util.Collection;
 
 /**
+ * 注册状态检查器
+ *
  * RegistryStatusChecker
  *
  */
 @Activate
 public class RegistryStatusChecker implements StatusChecker {
 
+    /**
+     * 检查注册中心的状态
+     *
+     * @return
+     */
     @Override
     public Status check() {
         Collection<Registry> registries = AbstractRegistryFactory.getRegistries();

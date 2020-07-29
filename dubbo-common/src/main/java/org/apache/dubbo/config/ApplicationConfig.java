@@ -48,6 +48,8 @@ import static org.apache.dubbo.config.Constants.TEST_ENVIRONMENT;
 
 
 /**
+ * 应用配置类
+ *
  * The application info
  *
  * @export
@@ -162,6 +164,11 @@ public class ApplicationConfig extends AbstractConfig {
     public ApplicationConfig() {
     }
 
+    /**
+     * 指定应用名称实例化应用
+     *
+     * @param name
+     */
     public ApplicationConfig(String name) {
         setName(name);
     }
@@ -171,6 +178,10 @@ public class ApplicationConfig extends AbstractConfig {
         return name;
     }
 
+    /**
+     * 如果应用id为空，将赋值为应用名字，即id和名字name相同
+     * @param name
+     */
     public void setName(String name) {
         this.name = name;
         if (StringUtils.isEmpty(id)) {

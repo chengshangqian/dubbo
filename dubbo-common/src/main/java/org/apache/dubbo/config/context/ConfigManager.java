@@ -67,6 +67,9 @@ public class ConfigManager extends LifecycleAdapter implements FrameworkExt {
 
     public static final String NAME = "config";
 
+    /**
+     * 配置缓存：key为格式化后的简单类名，value是key命名
+     */
     private final Map<String, Map<String, AbstractConfig>> configsCache = newMap();
 
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
@@ -384,8 +387,22 @@ public class ConfigManager extends LifecycleAdapter implements FrameworkExt {
         if (config == null) {
             return;
         }
+
+        /*
+        write(new Runnable() {
+            @Override
+            public void run() {
+                Map<String, AbstractConfig> configsMap = configsCache.computeIfAbsent(getTagName(config.getClass()), type -> newMap());
+                addIfAbsent(config, configsMap, unique);
+            }
+        });
+        */
         write(() -> {
+            // 配置映射：从配置缓存中获取配置映射，如果没有将创建一个新的hashmap返回同时放入缓存中
+            // key ：ServiceConfig => service，value为ServiceConfig实例
             Map<String, AbstractConfig> configsMap = configsCache.computeIfAbsent(getTagName(config.getClass()), type -> newMap());
+
+            // 将配置实例放入配置映射中
             addIfAbsent(config, configsMap, unique);
         });
     }
@@ -437,6 +454,16 @@ public class ConfigManager extends LifecycleAdapter implements FrameworkExt {
     }
 
     private void write(Runnable runnable) {
+        /*
+        write(new Callable() {
+            @Override
+            public Object call() throws Exception {
+                runnable.run();
+                return null;
+            }
+        });
+        */
+
         write(() -> {
             runnable.run();
             return null;
@@ -468,6 +495,15 @@ public class ConfigManager extends LifecycleAdapter implements FrameworkExt {
         return new HashMap<>();
     }
 
+    /**
+     * 将配置config放入configsMap映射中
+     *
+     * @param config
+     * @param configsMap
+     * @param unique
+     * @param <C>
+     * @throws IllegalStateException
+     */
     static <C extends AbstractConfig> void addIfAbsent(C config, Map<String, C> configsMap, boolean unique)
             throws IllegalStateException {
 
@@ -475,29 +511,48 @@ public class ConfigManager extends LifecycleAdapter implements FrameworkExt {
             return;
         }
 
+        /**
+         * 值唯一性检查：如果有重复相同，将打印警告信息
+         */
         if (unique) { // check duplicate
             configsMap.values().forEach(c -> {
                 checkDuplicate(c, config);
             });
         }
 
+        // 配置id：如果没有设置，将使用简单类名#default，比如ServerConfig#default
         String key = getId(config);
 
+        // 从配置映射中获取对应的配置
         C existedConfig = configsMap.get(key);
 
+        // 如果存在对应的配置，并且配置不是同一个，打印警告信息，不做任何修改
         if (existedConfig != null && !config.equals(existedConfig)) {
             if (logger.isWarnEnabled()) {
                 String type = config.getClass().getSimpleName();
                 logger.warn(String.format("Duplicate %s found, there already has one default %s or more than two %ss have the same id, " +
                         "you can try to give each %s a different id : %s", type, type, type, type, config));
             }
-        } else {
+        }
+        //  不存在该配置，则将配置放入配置映射中
+        else {
             configsMap.put(key, config);
         }
     }
 
+    /**
+     * 获取配置id，如果没有配置id，将检查是否是缺省设置，如果是缺省设置为true或没有做缺省设置，则返回简单类名#defalut，如果缺省设置为false将返回null
+     *
+     * @param config
+     * @param <C>
+     * @return
+     */
     static <C extends AbstractConfig> String getId(C config) {
         String id = config.getId();
+        // 1.id不为空返回id
+        // 2.id为空，则判断是否是缺省配置
+        //  2-1 如果是缺省配置，返回简单类名#defalut
+        //  2-2 返回null
         return isNotEmpty(id) ? id : isDefaultConfig(config) ?
                 config.getClass().getSimpleName() + "#" + DEFAULT_KEY : null;
     }

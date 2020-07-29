@@ -44,6 +44,8 @@ import static org.apache.dubbo.common.constants.CommonConstants.TAG_KEY;
 import static org.apache.dubbo.common.constants.CommonConstants.TIMESTAMP_KEY;
 
 /**
+ * 接口配置抽象类
+ *
  * AbstractDefaultConfig
  *
  * @export
@@ -54,21 +56,29 @@ public abstract class AbstractInterfaceConfig extends AbstractMethodConfig {
 
     /**
      * Local impl class name for the service interface
+     *
+     * 服务接口的本地实现类名
      */
     protected String local;
 
     /**
      * Local stub class name for the service interface
+     *
+     * 服务接口的本地存根（stub）类名
      */
     protected String stub;
 
     /**
      * Service monitor
+     *
+     * 服务监控者（配置）
      */
     protected MonitorConfig monitor;
 
     /**
      * Strategies for generating dynamic agents，there are two strategies can be choosed: jdk and javassist
+     *
+     * 产生动态代理的策略：共有两个策略可以被选择，jdk和javassist
      */
     protected String proxy;
 
@@ -80,54 +90,81 @@ public abstract class AbstractInterfaceConfig extends AbstractMethodConfig {
     /**
      * The {@code Filter} when the provider side exposed a service or the customer side references a remote service used,
      * if there are more than one, you can use commas to separate them
+     *
+     * commas 逗号
+     *
+     * 过滤器
+     * 当提供者端发布/公开一个服务或消费者端引用一个可用的远程服务时，如果有超过1个以上（服务），你可以使用逗号区分割它们
      */
     protected String filter;
 
     /**
      * The Listener when the provider side exposes a service or the customer side references a remote service used
      * if there are more than one, you can use commas to separate them
+     *
+     * 监听器？
+     * 当提供者端发布/公开一个服务或消费者端引用一个可用的远程服务时，如果有超过1个以上（服务），你可以使用逗号区分割它们
+     *
      */
     protected String listener;
 
     /**
      * The owner of the service providers
+     *
+     * 服务提供者的所有者
      */
     protected String owner;
 
     /**
      * Connection limits, 0 means shared connection, otherwise it defines the connections delegated to the current service
+     *
+     * 连接（限制）数，0表示共享连接，否则它定义为委派给当前服务的连接数，即当前服务的连接数
      */
     protected Integer connections;
 
     /**
      * The layer of service providers
+     *
+     * 服务提供者分层/层级/层别
      */
     protected String layer;
 
     /**
      * The application info
+     *
+     * 应用信息
      */
     protected ApplicationConfig application;
 
     /**
      * The module info
+     *
+     * 模块信息
      */
     protected ModuleConfig module;
 
     /**
      * The registry list the service will register to
      * Also see {@link #registryIds}, only one of them will work.
+     *
+     * 注册中心配置列表（注册中心列表）
+     * 服务注册了或注册到了几个服务中心，此参数和registryIds参数只能配置一个（即只有一个会起作用）
      */
     protected List<RegistryConfig> registries;
 
     /**
      * The method configuration
+     *
+     * 方法配置列表（方法列表）
      */
     private List<MethodConfig> methods;
 
     /**
      * The id list of registries the service will register to
      * Also see {@link #registries}, only one of them will work.
+     *
+     * 注册中心id列表
+     * 服务注册中心的id列表，此参数和registries只有一个会起作用
      */
     protected String registryIds;
 
@@ -141,24 +178,42 @@ public abstract class AbstractInterfaceConfig extends AbstractMethodConfig {
 
     /**
      * The metrics configuration
+     *
+     * metrics 度量、指标
+     *
+     * 指标配置
      */
     protected MetricsConfig metrics;
+
+    /**
+     * 元素据报告
+     */
     protected MetadataReportConfig metadataReportConfig;
 
+    /**
+     * 配置中心
+     */
     protected ConfigCenterConfig configCenter;
 
     // callback limits
+    // 回调（方法）数限制
     private Integer callbacks;
+
     // the scope for referring/exporting a service, if it's local, it means searching in current JVM only.
+    // 服务引用/发布的作用域，如果是本地local，表示只能在当前JVM中搜索（使用）
     private String scope;
 
+    // 标签
     protected String tag;
 
+    // 认证
     private  Boolean auth;
 
 
     /**
      * The url of the reference service
+     *
+     * 引用服务的url列表，服务的引用url列表
      */
     protected final List<URL> urls = new ArrayList<URL>();
 
@@ -175,6 +230,8 @@ public abstract class AbstractInterfaceConfig extends AbstractMethodConfig {
     }
 
     /**
+     * 检查注册配置是否存在，即检查注册中心是否存在，稍后会把它转换为注册配置
+     *
      * Check whether the registry config is exists, and then conversion it to {@link RegistryConfig}
      */
     public void checkRegistry() {
@@ -188,11 +245,22 @@ public abstract class AbstractInterfaceConfig extends AbstractMethodConfig {
         }
     }
 
+    /**
+     * 添加运行时参数
+     *
+     * @param map
+     */
     public static void appendRuntimeParameters(Map<String, String> map) {
+        // dubbo版本号
         map.put(DUBBO_VERSION_KEY, Version.getProtocolVersion());
+
+        // 公开发布版本号
         map.put(RELEASE_KEY, Version.getVersion());
+
+        // 时间戳
         map.put(TIMESTAMP_KEY, String.valueOf(System.currentTimeMillis()));
         if (ConfigUtils.getPid() > 0) {
+            // pid
             map.put(PID_KEY, String.valueOf(ConfigUtils.getPid()));
         }
     }
@@ -201,8 +269,10 @@ public abstract class AbstractInterfaceConfig extends AbstractMethodConfig {
      * Check whether the remote service interface and the methods meet with Dubbo's requirements.it mainly check, if the
      * methods configured in the configuration file are included in the interface of remote service
      *
-     * @param interfaceClass the interface of remote service
-     * @param methods        the methods configured
+     * 检查远程服务接口和方法是否符合Dubbo的要求。它主要检查，在配置文件中配置的方法是否包含在远程服务接口中。
+     *
+     * @param interfaceClass the interface of remote service 远程服务接口类型
+     * @param methods        the methods configured 配置的方法
      */
     public void checkInterfaceAndMethods(Class<?> interfaceClass, List<MethodConfig> methods) {
         // interface cannot be null

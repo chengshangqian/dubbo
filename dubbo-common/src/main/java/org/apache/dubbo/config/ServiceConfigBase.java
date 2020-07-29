@@ -35,6 +35,8 @@ import static org.apache.dubbo.common.constants.CommonConstants.COMMA_SPLIT_PATT
 import static org.apache.dubbo.common.constants.CommonConstants.DUBBO;
 
 /**
+ * 服务配置基础类
+ *
  * ServiceConfig
  *
  * @export
@@ -44,40 +46,57 @@ public abstract class ServiceConfigBase<T> extends AbstractServiceConfig {
     private static final long serialVersionUID = 3033787999037024738L;
 
     /**
+     * 服务接口名，被发布/导出的服务的接口名称
+     *
      * The interface name of the exported service
      */
     protected String interfaceName;
 
     /**
+     * 服务接口类型
+     *
      * The interface class of the exported service
      */
     protected Class<?> interfaceClass;
 
     /**
+     * 接口实现类实例（引用）
+     *
      * The reference of the interface implementation
      */
     protected T ref;
 
     /**
+     * 服务名称
+     *
      * The service name
      */
     protected String path;
 
     /**
+     * 提供者配置
+     *
      * The provider configuration
      */
     protected ProviderConfig provider;
 
     /**
+     * 提供者配置id
+     *
      * The providerIds
      */
     protected String providerIds;
 
     /**
+     * 是否是智能服务
+     *
      * whether it is a GenericService
      */
     protected volatile String generic;
 
+    /**
+     * 服务元数据
+     */
     protected ServiceMetadata serviceMetadata;
 
     public ServiceConfigBase() {
@@ -148,6 +167,11 @@ public abstract class ServiceConfigBase<T> extends AbstractServiceConfig {
         return provider;
     }
 
+    /**
+     * 判断是否应该应该发布
+     *
+     * @return
+     */
     public boolean shouldExport() {
         Boolean export = getExport();
         // default value is true
@@ -296,14 +320,25 @@ public abstract class ServiceConfigBase<T> extends AbstractServiceConfig {
         return interfaceName;
     }
 
+    /**
+     * 设置服务接口类型
+     *
+     * @param interfaceClass
+     */
     public void setInterface(Class<?> interfaceClass) {
         if (interfaceClass != null && !interfaceClass.isInterface()) {
             throw new IllegalStateException("The interface class " + interfaceClass + " is not a interface!");
         }
+        // 保存接口类型
         this.interfaceClass = interfaceClass;
+        // 设置接口类型名以及服务配置id
         setInterface(interfaceClass == null ? null : interfaceClass.getName());
     }
 
+    /**
+     * 设置服务接口名字，如果服务配置id为空或未设置，id将被设置为接口类型名称
+     * @param interfaceName
+     */
     public void setInterface(String interfaceName) {
         this.interfaceName = interfaceName;
         if (StringUtils.isEmpty(id)) {
@@ -315,6 +350,11 @@ public abstract class ServiceConfigBase<T> extends AbstractServiceConfig {
         return ref;
     }
 
+    /**
+     * 设置服务实现类实例（引用）
+     *
+     * @param ref 服务实现类
+     */
     public void setRef(T ref) {
         this.ref = ref;
     }
@@ -397,6 +437,11 @@ public abstract class ServiceConfigBase<T> extends AbstractServiceConfig {
         return DUBBO + ".service." + interfaceName;
     }
 
+    /**
+     * 构建唯一服务名称: [{group}/]{path}[:{version}]
+     *
+     * @return
+     */
     @Parameter(excluded = true)
     public String getUniqueServiceName() {
         return URL.buildKey(interfaceName, getGroup(), getVersion());

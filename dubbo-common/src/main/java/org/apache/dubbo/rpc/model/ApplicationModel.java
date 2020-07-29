@@ -77,7 +77,11 @@ public class ApplicationModel {
 
     private static final ExtensionLoader<FrameworkExt> LOADER = ExtensionLoader.getExtensionLoader(FrameworkExt.class);
 
+    /**
+     * 初始化框架扩展
+     */
     public static void initFrameworkExts() {
+        // 获得所有的扩展
         Set<FrameworkExt> exts = ExtensionLoader.getExtensionLoader(FrameworkExt.class).getSupportedExtensionInstances();
         for (FrameworkExt ext : exts) {
             ext.initialize();
@@ -92,6 +96,11 @@ public class ApplicationModel {
         return (ConfigManager) LOADER.getExtension(ConfigManager.NAME);
     }
 
+    /**
+     * 获取服务仓库
+     *
+     * @return
+     */
     public static ServiceRepository getServiceRepository() {
         return (ServiceRepository) LOADER.getExtension(ServiceRepository.NAME);
     }

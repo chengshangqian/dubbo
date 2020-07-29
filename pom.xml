@@ -30,6 +30,7 @@
     <packaging>pom</packaging>
 
     <name>${project.artifactId}</name>
+    <!--
     <description>The parent project of dubbo</description>
     <url>https://github.com/apache/dubbo</url>
     <inceptionYear>2011</inceptionYear>
@@ -85,6 +86,8 @@
         <system>Github Issues</system>
         <url>https://github.com/apache/dubbo/issues</url>
     </issueManagement>
+    -->
+
 
     <properties>
         <!-- Test libs -->
@@ -238,6 +241,7 @@
                 <doclint>none</doclint>
             </properties>
         </profile>
+        <!--
         <profile>
             <id>checkstyle</id>
             <activation>
@@ -294,6 +298,7 @@
                 </plugins>
             </build>
         </profile>
+
         <profile>
             <id>sources</id>
             <build>
@@ -424,6 +429,7 @@
                 </plugins>
             </build>
         </profile>
+        -->
     </profiles>
 
     <build>

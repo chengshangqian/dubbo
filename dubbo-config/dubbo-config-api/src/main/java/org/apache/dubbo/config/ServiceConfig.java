@@ -101,41 +101,58 @@ import static org.apache.dubbo.rpc.Constants.SCOPE_REMOTE;
 import static org.apache.dubbo.rpc.Constants.TOKEN_KEY;
 import static org.apache.dubbo.rpc.cluster.Constants.EXPORT_KEY;
 
+/**
+ * 服务配置类
+ *
+ * @param <T>
+ */
 public class ServiceConfig<T> extends ServiceConfigBase<T> {
 
+    // 日志
     public static final Logger logger = LoggerFactory.getLogger(ServiceConfig.class);
 
     /**
+     * 随机接口缓存，没有指定端口的不同协议会有不同的随机端口
      * A random port cache, the different protocols who has no port specified have different random port
      */
     private static final Map<String, Integer> RANDOM_PORT_MAP = new HashMap<String, Integer>();
 
     /**
+     * 服务延迟发布计时器
+     *
      * A delayed exposure service timer
      */
     private static final ScheduledExecutorService DELAY_EXPORT_EXECUTOR = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory("DubboServiceDelayExporter", true));
 
+    // 协议：默认值为dubbo
     private static final Protocol PROTOCOL = ExtensionLoader.getExtensionLoader(Protocol.class).getAdaptiveExtension();
 
     /**
+     * 代理工厂ProxyFactory实例，将生成一个导出的服务代理，默认是JavassistProxyFactory
+     *
      * A {@link ProxyFactory} implementation that will generate a exported service proxy,the JavassistProxyFactory is its
      * default implementation
      */
     private static final ProxyFactory PROXY_FACTORY = ExtensionLoader.getExtensionLoader(ProxyFactory.class).getAdaptiveExtension();
 
     /**
+     * 是否服务提供者已经发布
+     *
      * Whether the provider has been exported
      */
     private transient volatile boolean exported;
 
     /**
+     * 一个服务是否取消发布/不发布的标识，如果unexported()方法被调用，该值将为true
      * The flag whether a service has unexported ,if the method unexported is invoked, the value is true
      */
     private transient volatile boolean unexported;
 
+    // dubbo引导类实例
     private DubboBootstrap bootstrap;
 
     /**
+     * 发布者，已发布的服务列表
      * The exported services
      */
     private final List<Exporter<?>> exporters = new ArrayList<Exporter<?>>();
@@ -180,32 +197,47 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
         dispatch(new ServiceConfigUnexportedEvent(this));
     }
 
+    /**
+     * 发布服务
+     */
     public synchronized void export() {
         if (!shouldExport()) {
             return;
         }
 
+        // 如果引导为空，说明还未初始化，则获取引导（单例），先进行初始化
         if (bootstrap == null) {
             bootstrap = DubboBootstrap.getInstance();
             bootstrap.init();
         }
 
+        // 检查并更新子配置
         checkAndUpdateSubConfigs();
 
+        // 初始化服务元数据
         //init serviceMetadata
+        // 版本号
         serviceMetadata.setVersion(getVersion());
+        // 分组：对应zookeeper的根节点，默认是dubbo
         serviceMetadata.setGroup(getGroup());
         serviceMetadata.setDefaultGroup(getGroup());
+        // 服务类型（接口类型）
         serviceMetadata.setServiceType(getInterfaceClass());
+        // 服务接口名称
         serviceMetadata.setServiceInterfaceName(getInterface());
+        // 设置服务实例对象
         serviceMetadata.setTarget(getRef());
 
+        // 延时执行
         if (shouldDelay()) {
             DELAY_EXPORT_EXECUTOR.schedule(this::doExport, getDelay(), TimeUnit.MILLISECONDS);
-        } else {
+        }
+        // 即时发布
+        else {
             doExport();
         }
 
+        // 发布完成
         exported();
     }
 
@@ -214,6 +246,9 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
         dispatch(new ServiceConfigExportedEvent(this));
     }
 
+    /**
+     * 检查并更新子配置
+     */
     private void checkAndUpdateSubConfigs() {
         // Use default configs defined explicitly with global scope
         completeCompoundConfigs();
@@ -284,37 +319,58 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
         postProcessConfig();
     }
 
-
+    /**
+     * 发布服务
+     */
     protected synchronized void doExport() {
+        // 已取消发布/不发布
         if (unexported) {
             throw new IllegalStateException("The service " + interfaceClass.getName() + " has already unexported!");
         }
+
+        // 已经发布
         if (exported) {
             return;
         }
+
+        // 更新发布状态
         exported = true;
 
+        // 如果路径path为空，则使用服务接口名称（完整类型名），作为zookeeper中的二级节点
         if (StringUtils.isEmpty(path)) {
             path = interfaceName;
         }
+
+        // 发布服务
         doExportUrls();
     }
 
+    /**
+     * 发布服务
+     */
     @SuppressWarnings({"unchecked", "rawtypes"})
     private void doExportUrls() {
+        // 服务仓库，当前服务提供者应用下的所有服务
         ServiceRepository repository = ApplicationModel.getServiceRepository();
+
+        // 服务描述符/服务描述器：将服务接口类型注册到服务仓库中，注册服务（接口）
         ServiceDescriptor serviceDescriptor = repository.registerService(getInterfaceClass());
+
+        // 注册服务提供者
         repository.registerProvider(
-                getUniqueServiceName(),
+                getUniqueServiceName(), // [{group}/]{path}[:{version}],比如dubbo/com.fandou.learning.dubbo.action.echo.EchoService:123455
                 ref,
                 serviceDescriptor,
                 this,
                 serviceMetadata
         );
 
+        // 加载注册中心URL列表
         List<URL> registryURLs = ConfigValidationUtils.loadRegistries(this, true);
 
+        // 为每个协议并发布服务
         for (ProtocolConfig protocolConfig : protocols) {
+            // 服务路径 [group/]path[:version]格式
             String pathKey = URL.buildKey(getContextPath(protocolConfig)
                     .map(p -> p + "/" + path)
                     .orElse(path), group, version);
@@ -322,10 +378,18 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
             repository.registerService(pathKey, interfaceClass);
             // TODO, uncomment this line once service key is unified
             serviceMetadata.setServiceKey(pathKey);
+
+            // 为某个协议发布服务
             doExportUrlsFor1Protocol(protocolConfig, registryURLs);
         }
     }
 
+    /**
+     * 为某个协议发布服务
+     *
+     * @param protocolConfig
+     * @param registryURLs
+     */
     private void doExportUrlsFor1Protocol(ProtocolConfig protocolConfig, List<URL> registryURLs) {
         String name = protocolConfig.getName();
         if (StringUtils.isEmpty(name)) {
@@ -455,40 +519,55 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
         // don't export when none is configured
         if (!SCOPE_NONE.equalsIgnoreCase(scope)) {
 
+            // 发布为本地服务：同一个JVM内直接调用
             // export to local if the config is not remote (export to remote only when config is remote)
             if (!SCOPE_REMOTE.equalsIgnoreCase(scope)) {
                 exportLocal(url);
             }
+
+            // 发布为远程服务
             // export to remote if the config is not local (export to local only when config is local)
             if (!SCOPE_LOCAL.equalsIgnoreCase(scope)) {
+                // 遍历注册中心url开始发布
                 if (CollectionUtils.isNotEmpty(registryURLs)) {
                     for (URL registryURL : registryURLs) {
+                        // 如果是injvm协议，不发布为远程服务
                         //if protocol is only injvm ,not register
                         if (LOCAL_PROTOCOL.equalsIgnoreCase(url.getProtocol())) {
                             continue;
                         }
+
+                        // 动态参数
                         url = url.addParameterIfAbsent(DYNAMIC_KEY, registryURL.getParameter(DYNAMIC_KEY));
+
+                        // 监控参数（服务治理中心URL）
                         URL monitorUrl = ConfigValidationUtils.loadMonitor(this, registryURL);
                         if (monitorUrl != null) {
                             url = url.addParameterAndEncoded(MONITOR_KEY, monitorUrl.toFullString());
                         }
+
                         if (logger.isInfoEnabled()) {
                             if (url.getParameter(REGISTER_KEY, true)) {
+                                // 注册
                                 logger.info("Register dubbo service " + interfaceClass.getName() + " url " + url + " to registry " + registryURL);
                             } else {
+                                // 发布
                                 logger.info("Export dubbo service " + interfaceClass.getName() + " to url " + url);
                             }
                         }
 
+                        // 代理参数
                         // For providers, this is used to enable custom proxy to generate invoker
                         String proxy = url.getParameter(PROXY_KEY);
                         if (StringUtils.isNotEmpty(proxy)) {
                             registryURL = registryURL.addParameter(PROXY_KEY, proxy);
                         }
 
+                        // 获取调用者，然后委托
                         Invoker<?> invoker = PROXY_FACTORY.getInvoker(ref, (Class) interfaceClass, registryURL.addParameterAndEncoded(EXPORT_KEY, url.toFullString()));
                         DelegateProviderMetaDataInvoker wrapperInvoker = new DelegateProviderMetaDataInvoker(invoker, this);
 
+                        // 发布服务，然后保存发布者：RegistryProtocol
                         Exporter<?> exporter = PROTOCOL.export(wrapperInvoker);
                         exporters.add(exporter);
                     }

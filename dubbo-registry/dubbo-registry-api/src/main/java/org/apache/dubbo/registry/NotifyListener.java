@@ -21,6 +21,8 @@ import org.apache.dubbo.common.URL;
 import java.util.List;
 
 /**
+ * 通知监听器
+ *
  * NotifyListener. (API, Prototype, ThreadSafe)
  *
  * @see org.apache.dubbo.registry.RegistryService#subscribe(URL, NotifyListener)
@@ -28,6 +30,8 @@ import java.util.List;
 public interface NotifyListener {
 
     /**
+     * 当收到一个服务改变通知，将触发次方法
+     *
      * Triggered when a service change notification is received.
      * <p>
      * Notify needs to support the contract: <br>

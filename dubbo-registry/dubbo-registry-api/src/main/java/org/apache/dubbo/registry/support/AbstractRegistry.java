@@ -66,6 +66,8 @@ import static org.apache.dubbo.registry.Constants.REGISTRY_FILESAVE_SYNC_KEY;
 import static org.apache.dubbo.registry.Constants.REGISTRY__LOCAL_FILE_CACHE_ENABLED;
 
 /**
+ * 抽象注册中心
+ *
  * AbstractRegistry. (SPI, Prototype, ThreadSafe)
  */
 public abstract class AbstractRegistry implements Registry {
@@ -86,11 +88,20 @@ public abstract class AbstractRegistry implements Registry {
     private boolean syncSaveFile;
     private final AtomicLong lastCacheChanged = new AtomicLong();
     private final AtomicInteger savePropertiesRetryTimes = new AtomicInteger();
+    /**
+     * 已经注册的URL
+     */
     private final Set<URL> registered = new ConcurrentHashSet<>();
     private final ConcurrentMap<URL, Set<NotifyListener>> subscribed = new ConcurrentHashMap<>();
     private final ConcurrentMap<URL, Map<String, List<URL>>> notified = new ConcurrentHashMap<>();
+
+    /**
+     * 注册URL
+     */
     private URL registryUrl;
+
     // Local disk cache file
+    // 本地磁盘缓存文件
     private File file;
 
     public AbstractRegistry(URL url) {

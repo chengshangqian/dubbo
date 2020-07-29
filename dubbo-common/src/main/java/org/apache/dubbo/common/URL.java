@@ -1455,6 +1455,14 @@ class URL implements Serializable {
         return buildKey(inf, getParameter(GROUP_KEY), getParameter(VERSION_KEY));
     }
 
+    /**
+     * 构建key
+     *
+     * @param path 服务路径（一般为服务接口全名）
+     * @param group 分组（dubbo）
+     * @param version 版本号
+     * @return
+     */
     public static String buildKey(String path, String group, String version) {
         return BaseServiceMetadata.buildServiceKey(path, group, version);
     }

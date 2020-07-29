@@ -46,6 +46,11 @@ import org.w3c.dom.Element;
 import static com.alibaba.spring.util.AnnotatedBeanDefinitionRegistryUtils.registerBeans;
 
 /**
+ * Dubbo的命名空间处理器，用于处理dubbo命名空间的xml元素。
+ *
+ * 通过实现spring框架的NamespaceHandler接口及其xml配置文件扩展规范，实现与spring框架的整合（bean解析）：
+ * 当项目使用spring启动，解析xml配置文件，遇到dubbo命名空间的元素时，会调用此DubboNamespaceHandler解析dubbo命名空间的xml元素
+ *
  * DubboNamespaceHandler
  *
  * @export
@@ -56,6 +61,9 @@ public class DubboNamespaceHandler extends NamespaceHandlerSupport implements Co
         Version.checkDuplicate(DubboNamespaceHandler.class);
     }
 
+    /**
+     * 注册bean的解析器
+     */
     @Override
     public void init() {
         registerBeanDefinitionParser("application", new DubboBeanDefinitionParser(ApplicationConfig.class, true));
@@ -70,7 +78,9 @@ public class DubboNamespaceHandler extends NamespaceHandlerSupport implements Co
         registerBeanDefinitionParser("consumer", new DubboBeanDefinitionParser(ConsumerConfig.class, true));
         registerBeanDefinitionParser("protocol", new DubboBeanDefinitionParser(ProtocolConfig.class, true));
         registerBeanDefinitionParser("service", new DubboBeanDefinitionParser(ServiceBean.class, true));
+        // 服务引用reference标签计解析器，可以不需要id
         registerBeanDefinitionParser("reference", new DubboBeanDefinitionParser(ReferenceBean.class, false));
+        // 注解annotation标签解析器，其bean的id也是必须的，由父类完成id的设置逻辑
         registerBeanDefinitionParser("annotation", new AnnotationBeanDefinitionParser());
     }
 
@@ -87,7 +97,11 @@ public class DubboNamespaceHandler extends NamespaceHandlerSupport implements Co
         BeanDefinitionRegistry registry = parserContext.getRegistry();
         registerAnnotationConfigProcessors(registry);
         registerApplicationListeners(registry);
+
+        // init方法注册解析器，最终调用spring框架进行解析
+        // 父类parse方法会根据element元素名称，从init方法中解析器注册表中查找对应的解析器进行解析
         BeanDefinition beanDefinition = super.parse(element, parserContext);
+
         setSource(beanDefinition);
         return beanDefinition;
     }

@@ -77,6 +77,8 @@ public class AdaptiveClassCodeGenerator {
     }
 
     /**
+     * 至少有一个方法带有Adaptive注解
+     *
      * test if given type has at least one method annotated with <code>Adaptive</code>
      */
     private boolean hasAdaptiveMethod() {
@@ -84,19 +86,26 @@ public class AdaptiveClassCodeGenerator {
     }
 
     /**
+     * 动态生成自适应类的代码：扫描指定扩展类型type，如果有方法中有使用Adaptive注解，将生成自适应类
+     *
      * generate and return class code
      */
     public String generate() {
+        // 如果指定的扩展类型不存在使用Adaptive注解的方法，不符合自适应类，不会生成自适应类代码，抛出异常
         // no need to generate adaptive class since there's no adaptive method found.
         if (!hasAdaptiveMethod()) {
             throw new IllegalStateException("No adaptive method exist on extension " + type.getName() + ", refuse to create the adaptive class!");
         }
 
+        // 完整自适应类代码
         StringBuilder code = new StringBuilder();
+
+        // 生成包、import、类型声明含实现的接口
         code.append(generatePackageInfo());
         code.append(generateImports());
         code.append(generateClassDeclaration());
 
+        // 对Adaptive注解的方法进行生成
         Method[] methods = type.getMethods();
         for (Method method : methods) {
             code.append(generateMethod(method));
@@ -153,14 +162,24 @@ public class AdaptiveClassCodeGenerator {
     }
 
     /**
+     * 自适应方法生成
+     *
      * generate method declaration
      */
     private String generateMethod(Method method) {
+        // 方法返回值类型和方法名
         String methodReturnType = method.getReturnType().getCanonicalName();
         String methodName = method.getName();
+
+        // 方法体：核心分析
         String methodContent = generateMethodContent(method);
+
+        // 方法参数
         String methodArgs = generateMethodArguments(method);
+
+        // 方法异常
         String methodThrows = generateMethodThrows(method);
+
         return String.format(CODE_METHOD_DECLARATION, methodReturnType, methodName, methodArgs, methodThrows, methodContent);
     }
 
@@ -195,38 +214,64 @@ public class AdaptiveClassCodeGenerator {
     }
 
     /**
+     * 生成方法内容
+     *
      * generate method content
      */
     private String generateMethodContent(Method method) {
+        // 判断方法是否含有Adaptive注解
         Adaptive adaptiveAnnotation = method.getAnnotation(Adaptive.class);
+
         StringBuilder code = new StringBuilder(512);
+
+        // 如果不是Adaptive注解的方法
         if (adaptiveAnnotation == null) {
+            // 自动生成的自适应类不支持的非Adaptive注解的方法：返回一个会抛出异常的方法体，如果调用的话
             return generateUnsupported(method);
-        } else {
+        }
+
+        // Adaptive注解的方法
+        else {
+            // 获取类型为URL的参数位置索引，如果有的话：
+            // 生成的代码中，要求必须要有URL作判断，下面会通过直接或间接的方式生成获取URL的代码，如果没有将抛出异常
             int urlTypeIndex = getUrlTypeIndex(method);
 
             // found parameter in URL type
+            // 如果方法中有URL类型的参数
             if (urlTypeIndex != -1) {
                 // Null Point check
+                // 添加对URL参数的空指针检查的代码
                 code.append(generateUrlNullCheck(urlTypeIndex));
-            } else {
+            }
+            else {
                 // did not find parameter in URL type
+                // 如果方法不含有URL类型的参数，尝试检测（对象类型）参数中是否含有返回URL类型的方法：
+                // 如果有，将生成通过调用方法参数的内部方法返回URL的代码
+                // 即生成间接获取URL的代码，同时也会进行空指针检查
                 code.append(generateUrlAssignmentIndirectly(method));
             }
 
+            // 自适应参数值：即要匹配的扩展实现类的bean名称
             String[] value = getMethodAdaptiveValue(adaptiveAnnotation);
 
+            // 是否含有Invocation类型的参数
             boolean hasInvocation = hasInvocationArgument(method);
 
+            // Invocation参数控制键检查代码
             code.append(generateInvocationArgumentNullCheck(method));
 
+            // 扩展实现类最终的类名extName
             code.append(generateExtNameAssignment(value, hasInvocation));
+
             // check extName == null?
+            // 检查extName是否为空
             code.append(generateExtNameNullCheck(value));
 
+            // 加载/缓存扩展实现类类型并获取扩展类实例
             code.append(generateExtensionAssignment());
 
             // return statement
+            // 方法返回值语句，如果有的话
             code.append(generateReturnAndInvocation(method));
         }
 
@@ -337,6 +382,8 @@ public class AdaptiveClassCodeGenerator {
     }
 
     /**
+     * 如果方法的（对象类型）参数中含有返回URL类型的方法：生成间接获取URL的代码
+     *
      * get parameter with type <code>URL</code> from method parameter:
      * <p>
      * test if parameter has method which returns type <code>URL</code>
@@ -344,8 +391,10 @@ public class AdaptiveClassCodeGenerator {
      * if not found, throws IllegalStateException
      */
     private String generateUrlAssignmentIndirectly(Method method) {
+        // 方法参数（类型）对象
         Class<?>[] pts = method.getParameterTypes();
 
+        // 查找内部含有返回URL的无参方法的对象类型参数
         Map<String, Integer> getterReturnUrl = new HashMap<>();
         // find URL getter method
         for (int i = 0; i < pts.length; ++i) {
@@ -361,22 +410,28 @@ public class AdaptiveClassCodeGenerator {
             }
         }
 
+        // 如果找不到，将抛出异常
         if (getterReturnUrl.size() <= 0) {
             // getter method not found, throw
             throw new IllegalStateException("Failed to create adaptive class for interface " + type.getName()
                     + ": not found url parameter or url attribute in parameters of method " + method.getName());
         }
 
+        // 首先匹配getUrl方法
         Integer index = getterReturnUrl.get("getUrl");
         if (index != null) {
             return generateGetUrlNullCheck(index, pts[index], "getUrl");
-        } else {
+        }
+        // 匹配其它返回URL类型的无法方法：其中一个
+        else {
             Map.Entry<String, Integer> entry = getterReturnUrl.entrySet().iterator().next();
             return generateGetUrlNullCheck(entry.getValue(), pts[entry.getValue()], entry.getKey());
         }
     }
 
     /**
+     * 生成 通过方法中对象参数的方法获取URL的代码
+     *
      * 1, test if argi is null
      * 2, test if argi.getXX() returns null
      * 3, assign url with argi.getXX()
@@ -384,12 +439,18 @@ public class AdaptiveClassCodeGenerator {
     private String generateGetUrlNullCheck(int index, Class<?> type, String method) {
         // Null point check
         StringBuilder code = new StringBuilder();
+
+        // 对象参数空指针检查
         code.append(String.format("if (arg%d == null) throw new IllegalArgumentException(\"%s argument == null\");\n",
                 index, type.getName()));
+
+        // 对象参数返回URL的方法返回值空指针检查
         code.append(String.format("if (arg%d.%s() == null) throw new IllegalArgumentException(\"%s argument %s() == null\");\n",
                 index, method, type.getName(), method));
 
+        // 调用对象参数的方法获取URL
         code.append(String.format("%s url = arg%d.%s();\n", URL.class.getName(), index, method));
+
         return code.toString();
     }
 

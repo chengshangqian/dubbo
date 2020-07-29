@@ -166,42 +166,78 @@ public class ConfigValidationUtils {
     private static final Pattern PATTERN_KEY = Pattern.compile("[*,\\-._0-9a-zA-Z]+");
 
 
+    /**
+     * 获取注册中心URL列表
+     *
+     * @param interfaceConfig 接口配置即服务配置
+     * @param provider 是否服务提供者：即调用此方法的程序是否是服务提供者应用
+     * @return
+     */
     public static List<URL> loadRegistries(AbstractInterfaceConfig interfaceConfig, boolean provider) {
         // check && override if necessary
+        // 注册中心URL列表
         List<URL> registryList = new ArrayList<URL>();
+
+        // 获取应用信息
         ApplicationConfig application = interfaceConfig.getApplication();
+        // 获取注册中心列表
         List<RegistryConfig> registries = interfaceConfig.getRegistries();
+
+        // 遍历注册中心列表，获取有效的注册中心URL放入registryList
         if (CollectionUtils.isNotEmpty(registries)) {
             for (RegistryConfig config : registries) {
+                // 获取注册中心地址address
                 String address = config.getAddress();
+
+                // 如果为空，地址为任意主机地址
                 if (StringUtils.isEmpty(address)) {
                     address = ANYHOST_VALUE;
                 }
+
+                // 如果不是无效地址，开始对注册中心的原始地址address进行解析封装为url
                 if (!RegistryConfig.NO_AVAILABLE.equalsIgnoreCase(address)) {
                     Map<String, String> map = new HashMap<String, String>();
+
+                    // 拼接应用的属性/参数
                     AbstractConfig.appendParameters(map, application);
+
+                    // 拼接注册中心属性/参数
                     AbstractConfig.appendParameters(map, config);
+
+                    // 拼接注册服务（类型）
                     map.put(PATH_KEY, RegistryService.class.getName());
+
+                    // 拼接运行时参数，比如dubbo版本号，公开发布的版本号，时间戳，pid等
                     AbstractInterfaceConfig.appendRuntimeParameters(map);
+
+                    // 如果没有解析到协议，拼接默认的协议dubbo
                     if (!map.containsKey(PROTOCOL_KEY)) {
                         map.put(PROTOCOL_KEY, DUBBO_PROTOCOL);
                     }
+
+                    // 将address和url参数映射一起解析为url列表
                     List<URL> urls = UrlUtils.parseURLs(address, map);
 
                     for (URL url : urls) {
-
+                        // 使用URL构建器添加REGISTRY_KEY参数以及扩展注册类型构建规范的url
                         url = URLBuilder.from(url)
                                 .addParameter(REGISTRY_KEY, url.getProtocol())
                                 .setProtocol(extractRegistryType(url))
                                 .build();
+
+                        // 如果是服务提供者且存在注册参数或不是服务提供者但是由订阅参数
+                        // 即如果当前是服务提供者在注册服务或服务消费者|治理中心在定订阅服务
                         if ((provider && url.getParameter(REGISTER_KEY, true))
                                 || (!provider && url.getParameter(SUBSCRIBE_KEY, true))) {
+                            // 符合条件则放入到注册中心url列表中
                             registryList.add(url);
                         }
                     }
                 }
             }
         }
+
+        // 返回注册中心url列表
         return registryList;
     }
 

@@ -1,0 +1,3 @@
+com.fandou.learning.dubbo.action.chapter4.spi.service.SimplePrintService
+com.fandou.learning.dubbo.action.chapter4.spi.service.FixedLengthPrintService
+com.fandou.learning.dubbo.action.chapter4.spi.service.DoublePrintService

@@ -20,6 +20,8 @@ import org.apache.dubbo.common.Node;
 import org.apache.dubbo.common.URL;
 
 /**
+ * 注册中心（SPI、原型、线程安全）：节点注册服务
+ *
  * Registry. (SPI, Prototype, ThreadSafe)
  *
  * @see org.apache.dubbo.registry.RegistryFactory#getRegistry(URL)

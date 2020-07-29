@@ -29,6 +29,14 @@ public class BaseServiceMetadata {
     protected String version;
     protected volatile String group;
 
+    /**
+     * 构建服务键key： [{group}/]{path}[:{version}]
+     *
+     * @param path 服务路径
+     * @param group 分组
+     * @param version 版本号
+     * @return
+     */
     public static String buildServiceKey(String path, String group, String version) {
         StringBuilder buf = new StringBuilder();
         if (group != null && group.length() > 0) {

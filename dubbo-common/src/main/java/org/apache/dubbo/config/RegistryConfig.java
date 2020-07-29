@@ -28,6 +28,8 @@ import static org.apache.dubbo.common.constants.CommonConstants.SHUTDOWN_WAIT_KE
 import static org.apache.dubbo.config.Constants.REGISTRIES_SUFFIX;
 
 /**
+ * 注册中心配置
+ *
  * RegistryConfig
  *
  * @export
@@ -38,114 +40,163 @@ public class RegistryConfig extends AbstractConfig {
     private static final long serialVersionUID = 5508512956753757169L;
 
     /**
+     * 注册中心地址
+     *
      * Register center address
      */
     private String address;
 
     /**
+     * 登录注册中心的用户名
+     *
      * Username to login register center
      */
     private String username;
 
     /**
+     * 登录注册中心的密码
+     *
      * Password to login register center
      */
     private String password;
 
     /**
+     * 注册中心的缺省接口
+     *
      * Default port for register center
      */
     private Integer port;
 
     /**
+     * 注册中心协议：zookeeper、redis这类
+     *
      * Protocol for register center
      */
     private String protocol;
 
     /**
+     * 网络传输器（类型）
+     *
      * Network transmission type
      */
     private String transporter;
 
+    /**
+     * 服务器
+     */
     private String server;
 
+    /**
+     * 客户端
+     */
     private String client;
 
     /**
+     * 集群
+     *
      * Affects how traffic distributes among registries, useful when subscribing multiple registries, available options:
      * 1. zone-aware, a certain type of traffic always goes to one Registry according to where the traffic is originated.
      */
     private String cluster;
 
     /**
+     * 分区
+     *
      * The region where the registry belongs, usually used to isolate traffics
      */
     private String zone;
 
     /**
+     * 服务分组
+     *
      * The group the services registry in
      */
     private String group;
 
+    /**
+     * 服务版本号
+     */
     private String version;
 
     /**
+     * 请求超时：连接注册中心
      * Request timeout in milliseconds for register center
      */
     private Integer timeout;
 
     /**
+     * 会话超时
+     *
      * Session timeout in milliseconds for register center
      */
     private Integer session;
 
     /**
+     * 保存注册中心动态列表的文件
+     *
      * File for saving register center dynamic list
      */
     private String file;
 
     /**
+     * 停止前的等待时间
+     *
      * Wait time before stop
      */
     private Integer wait;
 
     /**
+     * 启动前，检查注册中心是否可用
+     *
      * Whether to check if register center is available when boot up
      */
     private Boolean check;
 
     /**
+     * 允许动态服务注册到注册中心
+     *
      * Whether to allow dynamic service to register on the register center
      */
     private Boolean dynamic;
 
     /**
+     * 是否发布服务到注册中心
      * Whether to export service on the register center
      */
     private Boolean register;
 
     /**
+     * 是否允许订阅
+     *
      * Whether allow to subscribe service on the register center
      */
     private Boolean subscribe;
 
     /**
+     * 自定义参数映射
+     *
      * The customized parameters
      */
     private Map<String, String> parameters;
 
     /**
+     * 是否缺省
+     *
      * Whether it's default
      */
     private Boolean isDefault;
 
     /**
+     * 简化注册中心
+     *
      * Simple the registry. both useful for provider and consumer
      *
      * @since 2.7.0
      */
     private Boolean simplified;
+
     /**
+     * 扩展键，只限服务提供者端
      * After simplify the registry, should add some parameter individually. just for provider.
      * <p>
      * such as: extra-keys = A,b,c,d
@@ -155,35 +206,54 @@ public class RegistryConfig extends AbstractConfig {
     private String extraKeys;
 
     /**
+     * 注册中心是否作为配置中心
+     *
      * the address work as config center or not
      */
     private Boolean useAsConfigCenter;
 
     /**
+     * 作为元数据中心
+     *
      * the address work as remote metadata center or not
      */
     private Boolean useAsMetadataCenter;
 
     /**
+     * 注册中心可接受的rpc远程调用协议
+     *
      * list of rpc protocols accepted by this registry, for example, "dubbo,rest"
      */
     private String accepts;
 
     /**
+     * 是否优先使用此注册中心
+     *
      * Always use this registry first if set to true, useful when subscribe to multiple registries
      */
     private Boolean preferred;
 
     /**
+     * 权重
+     *
      * Affects traffic distribution among registries, useful when subscribe to multiple registries
      * Take effect only when no preferred registry is specified.
      */
     private Integer weight;
 
+    /**
+     * 创建一个注册中心实例
+     */
     public RegistryConfig() {
     }
 
+    /**
+     * 指定协议地址创建注册中心实例
+     *
+     * @param address
+     */
     public RegistryConfig(String address) {
+        // 设置注册中心协议地址，同时尝试从协议地址中解析用户名、密码、协议、端口、参数等信息
         setAddress(address);
     }
 
@@ -206,6 +276,11 @@ public class RegistryConfig extends AbstractConfig {
         return address;
     }
 
+    /**
+     * 设置注册中心协议地址
+     * 同时尝试从协议地址中解析用户名、密码、协议、端口、参数等信息
+     * @param address
+     */
     public void setAddress(String address) {
         this.address = address;
         if (address != null) {

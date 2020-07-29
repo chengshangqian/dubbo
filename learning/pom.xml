@@ -6,12 +6,16 @@
         <artifactId>dubbo-parent</artifactId>
         <groupId>org.apache.dubbo</groupId>
         <version>${revision}</version>
+        <relativePath>../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>learning</artifactId>
     <packaging>pom</packaging>
     <name>learning</name>
+    <modules>
+        <module>dubbo-in-action</module>
+    </modules>
 
     <properties>
         <skip_maven_deploy>true</skip_maven_deploy>
@@ -28,6 +32,21 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
+
+            <!--
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-api</artifactId>
+                <version>1.7.9</version>
+            </dependency>
+            -->
+
+            <dependency>
+                <groupId>ch.qos.logback</groupId>
+                <artifactId>logback-classic</artifactId>
+                <version>1.2.3</version>
+            </dependency>
+
         </dependencies>
     </dependencyManagement>
 

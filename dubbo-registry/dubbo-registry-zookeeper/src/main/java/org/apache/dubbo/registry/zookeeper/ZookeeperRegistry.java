@@ -56,6 +56,8 @@ import static org.apache.dubbo.common.constants.RegistryConstants.PROVIDERS_CATE
 import static org.apache.dubbo.common.constants.RegistryConstants.ROUTERS_CATEGORY;
 
 /**
+ * zookeeper注册中心
+ *
  * ZookeeperRegistry
  *
  */

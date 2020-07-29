@@ -44,6 +44,8 @@ import static org.apache.dubbo.common.utils.ReflectUtils.resolveTypes;
 public interface MethodUtils {
 
     /**
+     * 判单是否是一个参数的基本类型或简单类型的setter方法
+     *
      * Return {@code true} if the provided method is a set method.
      * Otherwise, return {@code false}.
      *
@@ -67,6 +69,11 @@ public interface MethodUtils {
      */
     public static boolean isGetter(Method method) {
         String name = method.getName();
+
+        // get|is开头但不是get或is，
+        // 同时不能是getClass和getObject方法，
+        // 并且是公共修饰的无参方法，
+        // 其返回值符合基本类型或简单类型
         return (name.startsWith("get") || name.startsWith("is"))
                 && !"get".equals(name) && !"is".equals(name)
                 && !"getClass".equals(name) && !"getObject".equals(name)
