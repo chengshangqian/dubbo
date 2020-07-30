@@ -255,6 +255,7 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
 
         serviceMetadata.getAttachments().putAll(map);
 
+        // 创建服务引用代理对象
         ref = createProxy(map);
 
         serviceMetadata.setTarget(ref);

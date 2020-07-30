@@ -797,7 +797,7 @@ public class DubboBootstrap extends GenericEventListener {
                 registerServiceInstance();
             }
 
-            // 提供服务
+            // 服务引用
             referServices();
 
             // 更新dubbo服务提供者的就绪状态ready
@@ -991,14 +991,18 @@ public class DubboBootstrap extends GenericEventListener {
             // 设置引导，避免接下来执行export()方法发布服务时重复初始化
             serviceConfig.setBootstrap(this);
 
+            // 异步发布
             if (exportAsync) {
                 ExecutorService executor = executorRepository.getServiceExporterExecutor();
                 Future<?> future = executor.submit(() -> {
+                    // 发布服务
                     sc.export();
                     exportedServices.add(sc);
                 });
                 asyncExportingFutures.add(future);
-            } else {
+            }
+            else {
+                // 发布服务
                 sc.export();
                 exportedServices.add(sc);
             }
@@ -1020,11 +1024,15 @@ public class DubboBootstrap extends GenericEventListener {
         exportedServices.clear();
     }
 
+    /**
+     * 服务引用
+     */
     private void referServices() {
         if (cache == null) {
             cache = ReferenceConfigCache.getCache();
         }
 
+        // 创建并缓存引用服务的代理对象
         configManager.getReferences().forEach(rc -> {
             // TODO, compatible with  ReferenceConfig.refer()
             ReferenceConfig referenceConfig = (ReferenceConfig) rc;
@@ -1034,10 +1042,12 @@ public class DubboBootstrap extends GenericEventListener {
                 if (referAsync) {
                     CompletableFuture<Object> future = ScheduledCompletableFuture.submit(
                             executorRepository.getServiceExporterExecutor(),
+                            // 创建并缓存引用服务的代理对象
                             () -> cache.get(rc)
                     );
                     asyncReferringFutures.add(future);
                 } else {
+                    // 创建并缓存引用服务的代理对象
                     cache.get(rc);
                 }
             }

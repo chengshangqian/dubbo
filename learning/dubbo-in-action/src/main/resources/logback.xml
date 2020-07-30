@@ -26,12 +26,12 @@
     </appender>
 
     <root>
-        <level value="INFO"/>
+        <level value="TRACE"/>
         <appender-ref ref="DefaultConsoleAppender"/>
     </root>
 
     <!-- 关闭某个包下的日志 level="OFF" -->
     <logger name="io.netty" level="OFF" />
 
-    <logger name="org.springframework" level="ERROR" />
+    <logger name="org.springframework" level="INFO" />
 </configuration>

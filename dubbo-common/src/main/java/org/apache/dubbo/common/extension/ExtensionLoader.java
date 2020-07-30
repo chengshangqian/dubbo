@@ -685,26 +685,46 @@ public class ExtensionLoader<T> {
         return new IllegalStateException(buf.toString());
     }
 
+    /**
+     * 创建扩展实例
+     *
+     * @param name
+     * @return
+     */
     @SuppressWarnings("unchecked")
     private T createExtension(String name) {
+        // 从缓存中获取扩展实例类型
         Class<?> clazz = getExtensionClasses().get(name);
+
         if (clazz == null) {
             throw findException(name);
         }
+
         try {
+            // 尝试从缓存中获取扩展实例
             T instance = (T) EXTENSION_INSTANCES.get(clazz);
             if (instance == null) {
+                // 如果缓存中没有，将根据无参构造函数创建一个实例
                 EXTENSION_INSTANCES.putIfAbsent(clazz, clazz.newInstance());
                 instance = (T) EXTENSION_INSTANCES.get(clazz);
             }
+
+            // 注入setter依赖
             injectExtension(instance);
+
+            // 把实例注入到wrapper包装扩展类，实现增强，此时返回的将是包装类
+            // dubbo可以通过wrapper模式的扩展实现增强
             Set<Class<?>> wrapperClasses = cachedWrapperClasses;
             if (CollectionUtils.isNotEmpty(wrapperClasses)) {
                 for (Class<?> wrapperClass : wrapperClasses) {
                     instance = injectExtension((T) wrapperClass.getConstructor(type).newInstance(instance));
                 }
             }
+
+            // 初始化扩展实现类
             initExtension(instance);
+
+            // 返回扩展实现类
             return instance;
         } catch (Throwable t) {
             throw new IllegalStateException("Extension instance (name: " + name + ", class: " +
@@ -776,6 +796,11 @@ public class ExtensionLoader<T> {
         return instance;
     }
 
+    /**
+     * 初始化扩展实现类：如果是Lifecycle的子类
+     *
+     * @param instance
+     */
     private void initExtension(T instance) {
         if (instance instanceof Lifecycle) {
             Lifecycle lifecycle = (Lifecycle) instance;

@@ -94,7 +94,14 @@ public class DubboNamespaceHandler extends NamespaceHandlerSupport implements Co
      */
     @Override
     public BeanDefinition parse(Element element, ParserContext parserContext) {
+        // registry一般是DefaultListableBeanFactory实例：spring的IOC容器
         BeanDefinitionRegistry registry = parserContext.getRegistry();
+
+        // ApplicationListener是Spring事件机制的一部分，与抽象类ApplicationEvent类配合来完成ApplicationContext的事件机制。
+        // 如果容器中存在ApplicationListener的Bean，当ApplicationContext调用publishEvent方法时，对应的Bean会被触发。这一过程是典型的观察者模式的实现。
+        //
+        // 将监听器作为bean注册到spring容器中：将监听spring容器的所有事件
+        // 主要是容器刷新和关闭事件：刷新时即容器初始化完毕，启动dubbo框架，如连接注册中心、发布服务等；容器关闭时，停止dubbo框架，如取消注册中心、取消服务发布等
         registerAnnotationConfigProcessors(registry);
         registerApplicationListeners(registry);
 
@@ -107,6 +114,9 @@ public class DubboNamespaceHandler extends NamespaceHandlerSupport implements Co
     }
 
     /**
+     *  ApplicationListener是Spring事件机制的一部分，与抽象类ApplicationEvent类配合来完成ApplicationContext的事件机制。
+     *  如果容器中存在ApplicationListener的Bean，当ApplicationContext调用publishEvent方法时，对应的Bean会被触发。这一过程是典型的观察者模式的实现。
+     *
      * Register {@link ApplicationListener ApplicationListeners} as a Spring Bean
      *
      * @param registry {@link BeanDefinitionRegistry}
@@ -116,6 +126,7 @@ public class DubboNamespaceHandler extends NamespaceHandlerSupport implements Co
      */
     private void registerApplicationListeners(BeanDefinitionRegistry registry) {
         registerBeans(registry, DubboLifecycleComponentApplicationListener.class);
+        // 将监听容器的刷新和关闭事件
         registerBeans(registry, DubboBootstrapApplicationListener.class);
     }
 
