@@ -46,6 +46,9 @@ public interface Protocol {
      * 2.export()方法必须时等幂的，这样，当发布/导出相同URL时，调用一次和调用两次（其结果或影响）是没有任何区别的
      * 3.调用者实例invoker参数由框架传入，协议Protocol本身不需要关心
      *
+     * 接口中的Adaptive注解没有指定key,相当于默认使用类名或类名单词用.连接后作为key，比如Protocol -> protocol，SimpleExt -> simple.ext作为key
+     * export和refer的Adaptive注解相当于@Adaptive("protocol")
+     *
      * Export service for remote invocation: <br>
      * 1. Protocol should record request source address after receive a request:
      * RpcContext.getContext().setRemoteAddress();<br>

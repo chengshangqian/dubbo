@@ -243,54 +243,79 @@ class URL implements Serializable {
         String host = null;
         int port = 0;
         String path = null;
+
+        // 解析字符串url中的键值对参数
         Map<String, String> parameters = null;
+
+        // 解析第1个问号之后的字符串，如果有的话
         int i = url.indexOf('?'); // separator between body and parameters
         if (i >= 0) {
+            // 使用&分隔参数对
             String[] parts = url.substring(i + 1).split("&");
             parameters = new HashMap<>();
             for (String part : parts) {
                 part = part.trim();
                 if (part.length() > 0) {
+                    // 使用=号分隔参数和参数值
                     int j = part.indexOf('=');
                     if (j >= 0) {
+                        // 参数名称
                         String key = part.substring(0, j);
+                        // 参数值
                         String value = part.substring(j + 1);
+                        // 放入参数集合中
                         parameters.put(key, value);
                         // compatible with lower versions registering "default." keys
                         if (key.startsWith(DEFAULT_KEY_PREFIX)) {
                             parameters.putIfAbsent(key.substring(DEFAULT_KEY_PREFIX.length()), value);
                         }
-                    } else {
+                    }
+                    else {
+                        // 如果没有=号的部分，参数名和参数值相同
                         parameters.put(part, part);
                     }
                 }
             }
+
+            // url重设为?号之前的部分
             url = url.substring(0, i);
         }
+
+        // 解析是否含有协议：解析协议值
         i = url.indexOf("://");
         if (i >= 0) {
             if (i == 0) {
                 throw new IllegalStateException("url missing protocol: \"" + url + "\"");
             }
+
+            // 解析协议值
             protocol = url.substring(0, i);
+            // url重设为协议之后的部分
             url = url.substring(i + 3);
-        } else {
+        }
+        else {
+            // 可能是file:/path/to/file.txt这类情况
             // case: file:/path/to/file.txt
             i = url.indexOf(":/");
             if (i >= 0) {
                 if (i == 0) {
                     throw new IllegalStateException("url missing protocol: \"" + url + "\"");
                 }
+                // 解析协议值
                 protocol = url.substring(0, i);
+                // url重设为协议之后的部分
                 url = url.substring(i + 1);
             }
         }
 
+        // 是否有/，解析path参数值
         i = url.indexOf('/');
         if (i >= 0) {
             path = url.substring(i + 1);
             url = url.substring(0, i);
         }
+
+        // 解析用户名和密码
         i = url.lastIndexOf('@');
         if (i >= 0) {
             username = url.substring(0, i);
@@ -301,6 +326,8 @@ class URL implements Serializable {
             }
             url = url.substring(i + 1);
         }
+
+        // 解析端口号
         i = url.lastIndexOf(':');
         if (i >= 0 && i < url.length() - 1) {
             if (url.lastIndexOf('%') > i) {
@@ -313,13 +340,22 @@ class URL implements Serializable {
                 url = url.substring(0, i);
             }
         }
+
+        // 解析主机参数
         if (url.length() > 0) {
             host = url;
         }
 
+        // 使用解析的参数创建URL对象
         return new URL(protocol, username, password, host, port, path, parameters);
     }
 
+    /**
+     * 构建方法参数
+     *
+     * @param parameters
+     * @return
+     */
     public static Map<String, Map<String, String>> toMethodParameters(Map<String, String> parameters) {
         Map<String, Map<String, String>> methodParameters = new HashMap<>();
         if (parameters == null) {

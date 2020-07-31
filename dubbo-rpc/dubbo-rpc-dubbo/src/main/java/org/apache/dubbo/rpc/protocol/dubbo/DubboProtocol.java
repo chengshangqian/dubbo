@@ -308,7 +308,9 @@ public class DubboProtocol extends AbstractProtocol {
             }
         }
 
+        // 连接远程主机
         openServer(url);
+        // 序列化优化器
         optimizeSerialization(url);
 
         return exporter;
@@ -320,6 +322,7 @@ public class DubboProtocol extends AbstractProtocol {
         //client can export a service which's only for server to invoke
         boolean isServer = url.getParameter(IS_SERVER_KEY, true);
         if (isServer) {
+            // 单例
             ProtocolServer server = serverMap.get(key);
             if (server == null) {
                 synchronized (this) {

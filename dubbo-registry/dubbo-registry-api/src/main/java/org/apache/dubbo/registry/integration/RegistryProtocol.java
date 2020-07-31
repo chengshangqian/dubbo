@@ -133,7 +133,10 @@ public class RegistryProtocol implements Protocol {
     //providerurl <--> exporter
     private final ConcurrentMap<String, ExporterChangeableWrapper<?>> bounds = new ConcurrentHashMap<>();
     private Cluster cluster;
+
+    // 自动注入：自适应实例
     private Protocol protocol;
+
     private RegistryFactory registryFactory;
     private ProxyFactory proxyFactory;
 
@@ -178,12 +181,13 @@ public class RegistryProtocol implements Protocol {
     }
 
     /**
-     * 注册服务
+     * 注册服务到远程的注册中心，如zookeeper
      *
      * @param registryUrl
      * @param registeredProviderUrl
      */
     private void register(URL registryUrl, URL registeredProviderUrl) {
+        // 注册中心，如zookeeper
         Registry registry = registryFactory.getRegistry(registryUrl);
         registry.register(registeredProviderUrl);
     }
@@ -197,7 +201,7 @@ public class RegistryProtocol implements Protocol {
     }
 
     /**
-     * 发布服务
+     * 曝露/发布服务到注册中心
      *
      * @param originInvoker
      * @param <T>
@@ -206,8 +210,10 @@ public class RegistryProtocol implements Protocol {
      */
     @Override
     public <T> Exporter<T> export(final Invoker<T> originInvoker) throws RpcException {
+        // 注册中心的URL
         URL registryUrl = getRegistryUrl(originInvoker);
-        // url to export locally
+
+        // url to export locally，提供者URL
         URL providerUrl = getProviderUrl(originInvoker);
 
         // Subscribe the override data
@@ -219,10 +225,12 @@ public class RegistryProtocol implements Protocol {
         overrideListeners.put(overrideSubscribeUrl, overrideSubscribeListener);
 
         providerUrl = overrideUrlWithConfig(providerUrl, overrideSubscribeListener);
+
+        // 1.本地发布服务，转换为exporter，此时将启动netty服务端
         //export invoker
         final ExporterChangeableWrapper<T> exporter = doLocalExport(originInvoker, providerUrl);
 
-        // url to registry
+        // url to registry：zookeeper注册中心
         final Registry registry = getRegistry(originInvoker);
         final URL registeredProviderUrl = getUrlToRegistry(providerUrl, registryUrl);
 
@@ -264,12 +272,22 @@ public class RegistryProtocol implements Protocol {
         return serviceConfigurationListener.overrideUrl(providerUrl);
     }
 
+    /**
+     * 本地服务曝露
+     *
+     * @param originInvoker
+     * @param providerUrl
+     * @param <T>
+     * @return
+     */
     @SuppressWarnings("unchecked")
     private <T> ExporterChangeableWrapper<T> doLocalExport(final Invoker<T> originInvoker, URL providerUrl) {
         String key = getCacheKey(originInvoker);
 
         return (ExporterChangeableWrapper<T>) bounds.computeIfAbsent(key, s -> {
             Invoker<?> invokerDelegate = new InvokerDelegate<>(originInvoker, providerUrl);
+            // protocol.export也是一个自适应类实例，如果URL即providerUrl中没有指定protocol，一般是dubboProtocol.export：
+            // 启动服务提供者端的netty服务端，监听后续消费方的调用请求
             return new ExporterChangeableWrapper<>((Exporter<T>) protocol.export(invokerDelegate), originInvoker);
         });
     }
@@ -372,15 +390,31 @@ public class RegistryProtocol implements Protocol {
         return registryFactory.getRegistry(registryUrl);
     }
 
+    /**
+     * 获取注册中心URL
+     *
+     * @param originInvoker
+     * @return
+     */
     protected URL getRegistryUrl(Invoker<?> originInvoker) {
         URL registryUrl = originInvoker.getUrl();
+
+        // 如果URL协议为registry，将registry参数的值设置为URL的协议并移除参数registry
+        // 比如registry://192.168.1.1:2181?...&registry=zookeeper -> zookeeper://192.168.1.1:2181?...
         if (REGISTRY_PROTOCOL.equals(registryUrl.getProtocol())) {
             String protocol = registryUrl.getParameter(REGISTRY_KEY, DEFAULT_REGISTRY);
             registryUrl = registryUrl.setProtocol(protocol).removeParameter(REGISTRY_KEY);
         }
+
         return registryUrl;
     }
 
+    /**
+     * 获取注册中心URL
+     *
+     * @param url
+     * @return
+     */
     protected URL getRegistryUrl(URL url) {
         return URLBuilder.from(url)
                 .setProtocol(url.getParameter(REGISTRY_KEY, DEFAULT_REGISTRY))

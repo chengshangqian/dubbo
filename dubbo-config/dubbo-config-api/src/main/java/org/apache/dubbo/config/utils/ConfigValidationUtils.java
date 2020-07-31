@@ -180,6 +180,7 @@ public class ConfigValidationUtils {
 
         // 获取应用信息
         ApplicationConfig application = interfaceConfig.getApplication();
+
         // 获取注册中心列表
         List<RegistryConfig> registries = interfaceConfig.getRegistries();
 
@@ -189,47 +190,49 @@ public class ConfigValidationUtils {
                 // 获取注册中心地址address
                 String address = config.getAddress();
 
-                // 如果为空，地址为任意主机地址
+                // 如果为空，地址为任意主机地址：广播
                 if (StringUtils.isEmpty(address)) {
                     address = ANYHOST_VALUE;
                 }
 
-                // 如果不是无效地址，开始对注册中心的原始地址address进行解析封装为url
+                // 如果不是直连方式，开始对注册中心的原始地址address进行解析封装为url
                 if (!RegistryConfig.NO_AVAILABLE.equalsIgnoreCase(address)) {
+                    // map临时用于保存组装url的参数
                     Map<String, String> map = new HashMap<String, String>();
 
-                    // 拼接应用的属性/参数
+                    // 将<dubbo:application/>中的属性保存到map中
                     AbstractConfig.appendParameters(map, application);
 
-                    // 拼接注册中心属性/参数
+                    // 将<dubbo:registry/>中的属性保存到map中
                     AbstractConfig.appendParameters(map, config);
 
-                    // 拼接注册服务（类型）
+                    // 拼接path参数
                     map.put(PATH_KEY, RegistryService.class.getName());
 
                     // 拼接运行时参数，比如dubbo版本号，公开发布的版本号，时间戳，pid等
                     AbstractInterfaceConfig.appendRuntimeParameters(map);
 
-                    // 如果没有解析到协议，拼接默认的协议dubbo
+                    // 如果没有解析到协议参数protocol，使用默认协议dubbo
                     if (!map.containsKey(PROTOCOL_KEY)) {
                         map.put(PROTOCOL_KEY, DUBBO_PROTOCOL);
                     }
 
-                    // 将address和url参数映射一起解析为url列表
+                    // 将address和参数解析为url列表：address
                     List<URL> urls = UrlUtils.parseURLs(address, map);
 
                     for (URL url : urls) {
-                        // 使用URL构建器添加REGISTRY_KEY参数以及扩展注册类型构建规范的url
+                        // 使用URL构建器添加registry参数以及扩展注册类型
+                        // 即原来的zookeeper://192.168.8.159:2181 => registry://192.168.8.159:2181?...&registry=zookeeper
                         url = URLBuilder.from(url)
-                                .addParameter(REGISTRY_KEY, url.getProtocol())
-                                .setProtocol(extractRegistryType(url))
+                                .addParameter(REGISTRY_KEY, url.getProtocol()) // registry=zookeeper
+                                .setProtocol(extractRegistryType(url))// zookeeper变为service-discovery-registry或registry
                                 .build();
 
-                        // 如果是服务提供者且存在注册参数或不是服务提供者但是由订阅参数
-                        // 即如果当前是服务提供者在注册服务或服务消费者|治理中心在定订阅服务
+                        // 1.服务提供者端，如果注册中心设置设置为允许注册
+                        // 2.或不是服务提供者（消费者或治理中心），如果注册中心设置为允许订阅
                         if ((provider && url.getParameter(REGISTER_KEY, true))
                                 || (!provider && url.getParameter(SUBSCRIBE_KEY, true))) {
-                            // 符合条件则放入到注册中心url列表中
+                            // 符合条件则放入到注册中心url列表中，后续将提供服务的注册和发现/订阅：加入可用的注册中心列表中
                             registryList.add(url);
                         }
                     }

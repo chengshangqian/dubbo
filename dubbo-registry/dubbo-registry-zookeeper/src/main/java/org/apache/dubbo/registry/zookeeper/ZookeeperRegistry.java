@@ -125,6 +125,11 @@ public class ZookeeperRegistry extends FailbackRegistry {
         }
     }
 
+    /**
+     * 服务注册：发布一个节点信息到zookeeper上
+     *
+     * @param url
+     */
     @Override
     public void doRegister(URL url) {
         try {

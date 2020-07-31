@@ -64,16 +64,33 @@ public class UrlUtils {
      */
     private final static String URL_PARAM_STARTING_SYMBOL = "?";
 
+    /**
+     * 使用缺省参数将地址接卸为URL
+     *
+     * @param address 地址
+     * @param defaults 缺省参数
+     * @return
+     */
     public static URL parseURL(String address, Map<String, String> defaults) {
         if (address == null || address.length() == 0) {
             return null;
         }
+
+        // url字符串
         String url;
+
+        // 如果包含://或问号?的单个地址
         if (address.contains("://") || address.contains(URL_PARAM_STARTING_SYMBOL)) {
             url = address;
-        } else {
+        }
+        // 集群中的多个主机：默认使用第1个，其它作为备份
+        else {
+            // 检查是否有逗号分隔
             String[] addresses = COMMA_SPLIT_PATTERN.split(address);
+            // 第1个地址为主
             url = addresses[0];
+
+            // 其它地址拼接backup参数作为备份地址，如果有多个地址的话
             if (addresses.length > 1) {
                 StringBuilder backup = new StringBuilder();
                 for (int i = 1; i < addresses.length; i++) {
@@ -82,39 +99,62 @@ public class UrlUtils {
                     }
                     backup.append(addresses[i]);
                 }
+
+                // 拼接url：第1个地址将作为host，其它地址作为备份，使用backup参数保存
                 url += URL_PARAM_STARTING_SYMBOL + RemotingConstants.BACKUP_KEY + "=" + backup.toString();
             }
         }
+
+        // 协议参数值
         String defaultProtocol = defaults == null ? null : defaults.get(PROTOCOL_KEY);
+        // 如果没有协议参数，默认使用dubbo
         if (defaultProtocol == null || defaultProtocol.length() == 0) {
             defaultProtocol = DUBBO_PROTOCOL;
         }
+
+        // 账号密码
         String defaultUsername = defaults == null ? null : defaults.get(USERNAME_KEY);
         String defaultPassword = defaults == null ? null : defaults.get(PASSWORD_KEY);
+
+        // 端口号
         int defaultPort = StringUtils.parseInteger(defaults == null ? null : defaults.get(PORT_KEY));
+
+        // path参数
         String defaultPath = defaults == null ? null : defaults.get(PATH_KEY);
+
+        // 缺省参数集合，用于初始化URL，移除部分参数
         Map<String, String> defaultParameters = defaults == null ? null : new HashMap<>(defaults);
         if (defaultParameters != null) {
             defaultParameters.remove(PROTOCOL_KEY);
             defaultParameters.remove(USERNAME_KEY);
             defaultParameters.remove(PASSWORD_KEY);
+            // 主机
             defaultParameters.remove(HOST_KEY);
             defaultParameters.remove(PORT_KEY);
             defaultParameters.remove(PATH_KEY);
         }
+
+        // 解析url字符串为URL
         URL u = URL.valueOf(url);
+
+        // 检查URL中的核心参数是否有变更：如果url字符串中没有设置对应的参数，则需要使用给定的缺省参数
         boolean changed = false;
+
         String protocol = u.getProtocol();
         String username = u.getUsername();
         String password = u.getPassword();
-        String host = u.getHost();
+        String host = u.getHost(); // 不做检查
         int port = u.getPort();
         String path = u.getPath();
         Map<String, String> parameters = new HashMap<>(u.getParameters());
+
+        // 检查协议
         if (protocol == null || protocol.length() == 0) {
             changed = true;
             protocol = defaultProtocol;
         }
+
+        // 检查用户名和密码
         if ((username == null || username.length() == 0) && defaultUsername != null && defaultUsername.length() > 0) {
             changed = true;
             username = defaultUsername;
@@ -123,11 +163,15 @@ public class UrlUtils {
             changed = true;
             password = defaultPassword;
         }
+
         /*if (u.isAnyHost() || u.isLocalHost()) {
             changed = true;
             host = NetUtils.getLocalHost();
         }*/
+
+        // 检查端口号
         if (port <= 0) {
+            // 如果有给定缺省端口号，则使用缺省端口号，如果没有则使用9090
             if (defaultPort > 0) {
                 changed = true;
                 port = defaultPort;
@@ -136,18 +180,24 @@ public class UrlUtils {
                 port = 9090;
             }
         }
+
+        // 检查path参数
         if (path == null || path.length() == 0) {
             if (defaultPath != null && defaultPath.length() > 0) {
                 changed = true;
                 path = defaultPath;
             }
         }
+
+        // 检查其它参数
         if (defaultParameters != null && defaultParameters.size() > 0) {
             for (Map.Entry<String, String> entry : defaultParameters.entrySet()) {
                 String key = entry.getKey();
                 String defaultValue = entry.getValue();
+                // 如果缺省的参数集合中有键器有值
                 if (defaultValue != null && defaultValue.length() > 0) {
                     String value = parameters.get(key);
+                    // 如果url没有对应参数或值，则赋值更新
                     if (StringUtils.isEmpty(value)) {
                         changed = true;
                         parameters.put(key, defaultValue);
@@ -155,24 +205,39 @@ public class UrlUtils {
                 }
             }
         }
+
+        // 如果有变更，重新构造URL
         if (changed) {
             u = new URL(protocol, username, password, host, port, path, parameters);
         }
+
         return u;
     }
 
+    /**
+     * 将地址address解析为URL列表：address可能是使用分号隔开的集群或多个URL字符串
+     *
+     * @param address
+     * @param defaults
+     * @return
+     */
     public static List<URL> parseURLs(String address, Map<String, String> defaults) {
         if (address == null || address.length() == 0) {
             return null;
         }
+
+        // 使用分号隔开不同的（集群）地址
         String[] addresses = REGISTRY_SPLIT_PATTERN.split(address);
         if (addresses == null || addresses.length == 0) {
             return null; //here won't be empty
         }
+
         List<URL> registries = new ArrayList<URL>();
+        // 遍历每个地址，然后和给定的缺省参数解析为URL
         for (String addr : addresses) {
             registries.add(parseURL(addr, defaults));
         }
+
         return registries;
     }
 
